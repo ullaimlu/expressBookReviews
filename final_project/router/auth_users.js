@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 let books = require("./booksdb.js");
 const regd_users = express.Router();
 
-let users = [];
+let users = [{username: 'lula', password:'123'}];
 
 const isValid = (username, password)=>{ 
   return users.find(user => user.username === username && user.password === password);
@@ -52,16 +52,35 @@ regd_users.post("/login", (req,res) => {
 });
 
 // Add a book review
-regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  const review = req.body;
-  let booksList=Object.values(books);
-  let result = booksList.find((book)=> book.isbn === req.params.isbn);
-  result[review]= result.reviews.push(review);
-  let number = getKeyByValue(books,result);
-  books[number]= result;
-  return res.status(300).json({message: "Yet to be implemented"});
-});
+regd_users.put('/auth/review/:isbn', function(req, res) {
+    const isbn = req.params.isbn;
+    const review = req.body.review;
+    const username = req.session.username;
+  
+    let booksList = Object.values(books)
+    const book = booksList.find(b => b.isbn == isbn)
+    // If the ISBN doesn't exist in the books object, send an error message
+    if (!book) {
+      res.status(404).send('The book with ISBN ' + isbn + ' does not exist.');
+      return;
+    }
+  
+    // If the user already posted a review for this book, modify the existing review
+    if (book.reviews[username]) {
+      book.reviews[username] = review;
+      //res.json('Your review has been updated for the book with ISBN ' + isbn + ':'+ `${book}`);
+      res.json(`Your review has been updated for the book ${book.title} by ${book.author} with ISBN ${isbn}: ==>${JSON.stringify(book)}`);
+  
+      return;
+    }
+  
+    // If the user didn't post a review for this book, add a new review
+    book.reviews[username] = review;
+    //res.send('Your review has been posted for the book with ISBN ' + isbn + ':'+ `${book}`);
+    res.json(`Your review has been posted for the book ${book.title} by ${book.author} with ISBN ${isbn}: ==>${JSON.stringify(book)}`);
+  
+  });
+  
 
 module.exports.authenticated = regd_users;
 module.exports.isValid = isValid;
